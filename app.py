@@ -1,28 +1,36 @@
-#!/usr/bin/env python3
+import aws_cdk as cdk
+from aws_cdk import (
+    Stack,
+    aws_lambda as _lambda,
+    aws_ecr_assets as ecr_assets,
+    aws_apigateway as apigateway
+)
+from constructs import Construct
 import os
 
-import aws_cdk as cdk
+def generateResourceName(resource):
+    project_name = os.getenv('PROJECT_NAME', "rm-api")
+    environment = os.getenv('ENVIRONMENT', "dev")
+    region_prefix = os.getenv('REGION_PREFIX', "usw2")
+    return f"{project_name}-{environment}-{region_prefix}-{resource}"
 
-from cdk_init.cdk_init_stack import CdkInitStack
+class RMAPIStack(Stack):
+    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+        super().__init__(scope, id, **kwargs)
 
+        api_lambda = _lambda.DockerImageFunction(
+            self, generateResourceName("api-lambda"),
+            code=_lambda.DockerImageCode.from_image_asset(directory='.'),
+            timeout=cdk.Duration.seconds(30)
+        )
+
+        api_gateway = apigateway.LambdaRestApi(
+            self, generateResourceName("api-gateway"),
+            handler=api_lambda,
+            proxy=True,
+            rest_api_name=f"{os.getenv('PROJECT_NAME', 'RM API')} service"
+        )
 
 app = cdk.App()
-CdkInitStack(app, "CdkInitStack",
-    # If you don't specify 'env', this stack will be environment-agnostic.
-    # Account/Region-dependent features and context lookups will not work,
-    # but a single synthesized template can be deployed anywhere.
-
-    # Uncomment the next line to specialize this stack for the AWS Account
-    # and Region that are implied by the current CLI configuration.
-
-    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
-
-    # Uncomment the next line if you know exactly what Account and Region you
-    # want to deploy the stack to. */
-
-    #env=cdk.Environment(account='123456789012', region='us-east-1'),
-
-    # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-    )
-
+RMAPIStack(app, generateResourceName("stack"))
 app.synth()

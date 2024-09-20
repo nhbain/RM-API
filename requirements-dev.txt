@@ -1,3 +1,7 @@
+# Local specific requirements
+awscli
+fastapi-cli[standard]>=0.0.5
+# ----------------------------
 fastapi==0.115.0
 mangum==0.17.0
 aws-cdk-lib==2.159.1
